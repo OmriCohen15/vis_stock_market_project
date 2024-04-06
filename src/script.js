@@ -1,11 +1,6 @@
 /* global d3, _ */
 
 (function() {
-  // var margin = {top: 30, right: 20, bottom: 100, left: 50},
-  //     margin2  = {top: 210, right: 20, bottom: 20, left: 50},
-  //     width    = 764 - margin.left - margin.right + 200,
-  //     height   = 283 - margin.top - margin.bottom,
-  //     height_date_slider  = 283 - margin2.top - margin2.bottom;
 
 var margin = {top: 30, right: 20, bottom: 100, left: 75},
   margin2  = {top: 210, right: 20, bottom: 20, left: 75};
@@ -21,7 +16,7 @@ var width    =  window.innerWidth - margin.left - margin.right - 20, // -20 for 
   var x = d3.time.scale().range([0, width]),
       y = d3.scale.linear().range([height, 0]),
       x_volume  = d3.time.scale().range([0, width]),
-      y_volume  = d3.scale.linear().range([60, 0]),
+      y_volume  = d3.scale.linear().range([height, height-50]),
       x_date_slider  = d3.time.scale().range([0, width]),
       y_date_slider  = d3.scale.linear().range([height_date_slider, 0]);
 
@@ -79,10 +74,10 @@ var width    =  window.innerWidth - margin.left - margin.right - 20, // -20 for 
     .attr('transform', 'translate(' + margin2.left + ',' + (margin2.top + 60) + ')');
 
   var legendData = [
-    {name: "SPY", color: "#1f77b4"},
-    {name: "QQQ", color: "#ff7f0e"},
-    {name: "ACWI", color: "#2ca02c"},
-    {name: "SOXX", color: "#d62728"}
+    {name: "SPY", color: "#1f77b4", visible: true},
+    {name: "QQQ", color: "#ff7f0e", visible: true},
+    {name: "ACWI", color: "#2ca02c", visible: true},
+    {name: "SOXX", color: "#d62728", visible: true}
   ];
 
   var legend = svg.append("g")
@@ -99,7 +94,13 @@ var width    =  window.innerWidth - margin.left - margin.right - 20, // -20 for 
       d3.select(this).append("rect")
         .attr("width", 20)
         .attr("height", 20)
-        .attr("fill", d.color);
+        .attr("stroke", "black")
+        .attr("fill", d.color)
+        .on("click", function() {
+          // Toggle visibility
+          d.visible = !d.visible;
+          d3.select(this).attr("fill", d.visible ? d.color : "white");
+        });
       
       // Append text label for the colored rectangle
       d3.select(this).append("text")
@@ -115,12 +116,12 @@ var width    =  window.innerWidth - margin.left - margin.right - 20, // -20 for 
     .attr('height', 30)
     .attr('transform', 'translate(' + margin2.left + ', 10)');
 
-  var rangeSelection =  legend
+        var rangeSelection =  legend
     .append('g')
     .attr('class', 'chart__range-selection')
     .attr('transform', 'translate(0, 0)');
-
-              // Blue , Orange, Green, Red
+    
+                  // Blue , Orange, Green, Red
   var colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728'];
   var filePaths = ['./data/STOCKHISTORY_SPY.csv', './data/STOCKHISTORY_QQQ.csv', './data/STOCKHISTORY_ACWI.csv', './data/STOCKHISTORY_SOXX.csv'];
     d3.csv(filePaths[0], type, function(err, data) {
@@ -137,7 +138,6 @@ var width    =  window.innerWidth - margin.left - margin.right - 20, // -20 for 
               var xRange = d3.extent(data.map(function(d) { return d.date; }));
               x.domain(xRange);
               x_volume.domain(xRange);
-
               // Calculate extent
               let priceExtent = d3.extent(datas, function(d) { return d.price; });
               let priceExtent_from_zero = [0, priceExtent[1]];
@@ -145,7 +145,6 @@ var width    =  window.innerWidth - margin.left - margin.right - 20, // -20 for 
               let volumeExtent_from_zero = [0, volumeExtent[1]];
               // Set domain based on the merged data extent
               y.domain(priceExtent_from_zero);
-              console.log(volumeExtent_from_zero);
               y_volume.domain(volumeExtent_from_zero);
 
               x_date_slider.domain(x.domain());
@@ -213,24 +212,34 @@ var width    =  window.innerWidth - margin.left - margin.right - 20, // -20 for 
                   .attr('class', 'y axis')
                   .attr('transform', 'translate(12, 0)')
                   .call(y_axis);
-          
-              var focusGraph = barsGroup.selectAll('rect')
-                  .data(data)
-                .enter().append('rect')
-                  .attr('class', 'chart__bars')
-                  .attr('x', function(d, i) { return x(d.date); })
-                  .attr('y', function(d) { return 155 - y_volume(d.price); })
-                  .attr('width', 1)
-                  .attr('height', function(d) { return y_volume(d.price); });
-              // var focusGraph2 = barsGroup.selectAll('rect')
-              //     .data(data2)
-              //   .enter().append('rect')
-              //     .attr('class', 'chart__bars')
-              //     .attr('x', function(d, i) { return x(d.date); })
-              //     .attr('y', function(d) { return 155 - y_volume(d.price); })
-              //     .attr('width', 1)
-              //     .attr('height', function(d) { return y_volume(d.price); });
-          
+
+              var stack = d3.layout.stack()
+                // .offset("wiggle")
+                .values(function(d) { return d.values; });
+              // TODO: Make the stacked bars width to be wider and bigger when zooming in (with brush)
+              var focusGraph = barsGroup.selectAll('g')
+                               .data(stack([
+                                {name: "SPY", values: data.map(function(d) { return {x: d.date, y: d.volume}; })},
+                                {name: "QQQ", values: data2.map(function(d) { return {x: d.date, y: d.volume}; })},
+                                {name: "ACWI", values: data3.map(function(d) { return {x: d.date, y: d.volume}; })},
+                                {name: "SOXX", values: data4.map(function(d) { return {x: d.date, y: d.volume}; })}
+                              ]))
+                  .enter().append('g')
+                  .style('fill', function(d, i) { return colors[i]; }) // Use the colors array defined earlier
+                  .selectAll('rect')
+                  .data(function(d) { return d.values; })
+                  .enter().append('rect')
+                    .attr('x', function(d) { return x(d.x); })
+                    .attr('y', function(d) {
+                      //TODO: check why receive NaN on count 7044 in y and height
+                      var yPos = y_volume(d.y0 + d.y);  // Calculate the y position
+                      return isNaN(yPos) ? 0 : yPos;     // Check if yPos is NaN, if so return 0, else return yPos
+                  })
+                    // .attr('y', function(d) { return y_volume((d.y0 + d.y)); }) // Use y0 + y for stacked bar position
+                    .attr('height', function(d) { var y_h = y_volume(d.y0) - y_volume(d.y0 + d.y);
+                      return isNaN(y_h) ? 0 : y_h;  }) // Adjust height for stacked bars
+                    .attr('width', 1); // Maintain the width as 1
+
               var helper = focus.append('g')
                 .attr('class', 'chart__helper')
                 .style('text-anchor', 'end')
@@ -269,6 +278,7 @@ var width    =  window.innerWidth - margin.left - margin.right - 20, // -20 for 
                 })
                 .on('mousemove', mousemove);
           
+              //TODO: chnage to history events
               context.append('path')
                   .datum(data)
                   .attr('class', 'chart__area area')
@@ -354,33 +364,78 @@ var width    =  window.innerWidth - margin.left - margin.right - 20, // -20 for 
                 }
 
                 if (minimumValue <= closenessThreshold) {
-                  helperText.text(legendFormat(new Date(d_final.date)) + ' - Price: ' + d_final.price + ' Avg: ' + d_final.average);
+                  helperText.text(legendFormat(new Date(d_final.date)) + ' - Price: ' + d_final.price + ' Avg: ' + d_final.average + ' Vol: ' + d_final.volume);
                   priceTooltip.attr('transform', 'translate(' + x(d_final.date) + ',' + y(d_final.price) + ')');
                   averageTooltip.attr('transform', 'translate(' + x(d_final.date) + ',' + y(d_final.average) + ')');
                 }
               }
-          
+            
               function brushed() {
                 var ext = brush.extent();
                 if (!brush.empty()) {
                   x.domain(brush.empty() ? x_date_slider.domain() : brush.extent());
-                  y.domain([
-                    d3.min(data.map(function(d) { return (d.date >= ext[0] && d.date <= ext[1]) ? d.price : max; })),
-                    d3.max(data.map(function(d) { return (d.date >= ext[0] && d.date <= ext[1]) ? d.price : min; }))
-                  ]);
-                  range.text(legendFormat(new Date(ext[0])) + ' - ' + legendFormat(new Date(ext[1])))
-                  focusGraph.attr('x', function(d, i) { return x(d.date); });
-          
-                  var days = Math.ceil((ext[1] - ext[0]) / (24 * 3600 * 1000))
-                  focusGraph.attr('width', (40 > days) ? (40 - days) * 5 / 6 : 5)
+              
+                  // Calculate global min and max across all datasets
+                  var allData = [data, data2, data3, data4];
+                  var minPrice = d3.min(allData, function(ds) {
+                    return d3.min(ds, function(d) { return (d.date >= ext[0] && d.date <= ext[1]) ? d.price : Infinity; });
+                  });
+                  var maxPrice = d3.max(allData, function(ds) {
+                    return d3.max(ds, function(d) { return (d.date >= ext[0] && d.date <= ext[1]) ? d.price : -Infinity; });
+                  });
+              
+                  y.domain([minPrice, maxPrice]);
+              
+                  // Update text and positions
+                  range.text(legendFormat(new Date(ext[0])) + ' - ' + legendFormat(new Date(ext[1])));
+                  // Update the bars in the focusGraph
+                  var stackData = [
+                    {name: "SPY", values: data.map(function(d) { return {x: d.date, y: d.volume}; })},
+                    {name: "QQQ", values: data2.map(function(d) { return {x: d.date, y: d.volume}; })},
+                    {name: "ACWI", values: data3.map(function(d) { return {x: d.date, y: d.volume}; })},
+                    {name: "SOXX", values: data4.map(function(d) { return {x: d.date, y: d.volume}; })}
+                  ];
+                  var stackedData = stack(stackData);  // Recalculate stack layout
+
+                  var bars = barsGroup.selectAll('g').data(stackedData);  // Rebind updated data
+                  bars.enter().append('g')
+                      .style('fill', function(d, i) { return colors[i]; });
+                  bars.exit().remove();
+
+                  var rects = bars.selectAll('rect')
+                      .data(function(d) { return d.values; });
+
+                  rects.enter().append('rect');
+                  rects.exit().remove();
+
+                  rects.attr('x', function(d) { return x(d.x); })
+                  .attr('y', function(d) {
+                    //TODO: check why receive NaN on count 7044 in y and height
+                    var yPos = y_volume(d.y0 + d.y);  // Calculate the y position
+                    return isNaN(yPos) ? 0 : yPos;     // Check if yPos is NaN, if so return 0, else return yPos
+                })
+                  // .attr('y', function(d) { return y_volume((d.y0 + d.y)); }) // Use y0 + y for stacked bar position
+                  .attr('height', function(d) { var y_h = y_volume(d.y0) - y_volume(d.y0 + d.y);
+                    return isNaN(y_h) ? 0 : y_h;  }) // Adjust height for stacked bars
+                      .attr('width', 1);  // Mark - Updated attributes for rects
+                                // Additional adjustments for focusGraph, etc.
                 }
-          
-                priceChart.attr('d', priceLine);
-                averageChart.attr('d', avgLine);
+              
+                // Update charts
+                let averageCharts = [averageChart, averageChart2, averageChart3, averageChart4];
+                let priceCharts = [priceChart, priceChart2, priceChart3, priceChart4];
+              
+                // Assuming avgLine and priceLine are updated elsewhere or need dynamic computation here
+                averageCharts.forEach(chart => {
+                  chart.attr('d', avgLine); // Ensure avgLine is correctly updated for the new x domain
+                });
+                priceCharts.forEach(chart => {
+                  chart.attr('d', priceLine); // Ensure priceLine is correctly updated for the new x domain
+                });
+              
                 focus.select('.x.axis').call(x_axis);
                 focus.select('.y.axis').call(y_axis);
               }
-          
               var dateRange = ['1w', '1m', '3m', '6m', '1y', '5y']
               for (var i = 0, l = dateRange.length; i < l; i ++) {
                 var v = dateRange[i];
