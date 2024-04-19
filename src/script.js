@@ -2,14 +2,14 @@
 
 (function() {
   var margin = {top: 30, right: 20, bottom: 100, left: 75},
-    margin2  = {top: 210, right: 20, bottom: 20, left: 75};
+    margin2  = {top: 240, right: 20, bottom: 20, left: 75};
 
   var width    =  window.innerWidth - margin.left - margin.right - 20, // -20 for the margin
       height   = 283 - margin.top - margin.bottom,
       height_date_slider  = 283 - margin2.top - margin2.bottom;
 
   var parseDate = d3.time.format('%d/%m/%Y').parse,
-      bisectDate = d3.bisector(function(d) { return d.date; }).left,
+      // bisectDate = d3.bisector(function(d) { return d.date; }).left,
       legendFormat = d3.time.format('%b %d, %Y');
 
   var x = d3.time.scale().range([0, width]),
@@ -21,8 +21,8 @@
 
   var x_axis   = d3.svg.axis().scale(x).orient('bottom'),
       y_axis   = d3.svg.axis().scale(y).orient('left'),
-      x_axis_volume   = d3.svg.axis().scale(x_volume).orient('bottom'),
-      y_axis_volume   = d3.svg.axis().scale(y_volume).orient('left'),
+      // x_axis_volume   = d3.svg.axis().scale(x_volume).orient('bottom'),
+      // y_axis_volume   = d3.svg.axis().scale(y_volume).orient('left'),
       x_date_slider_axis  = d3.svg.axis().scale(x_date_slider).orient('bottom');
 
   var priceLine = d3.svg.line()
@@ -35,11 +35,11 @@
     .x(function(d) { return x(d.date); })
     .y(function(d) { return y(d.average); });
   
-  var area_date_slider = d3.svg.area()
-    .interpolate('monotone')
-    .x(function(d) { return x_date_slider(d.date); })
-    .y0(height_date_slider)
-    .y1(function(d) { return y_date_slider(d.price); });
+  // var area_date_slider = d3.svg.area()
+  //   .interpolate('monotone')
+  //   .x(function(d) { return x_date_slider(d.date); })
+  //   .y0(height_date_slider)
+  //   .y1(function(d) { return y_date_slider(d.price); });
 
   var svg = d3.select('body').append('svg')
     .attr('class', 'chart')
@@ -87,8 +87,13 @@
 
     // Create a new array containing only the data where `visible` is true
     var visibleData = all_data.filter((item, index) => legendData[index].visible);
-    var visibleColors = colors.filter((item, index) => legendData[index].visible); // TODO: check if the filter for colors is correct
-    console.log(visibleData)
+    var visibleLegend = legendData.filter((item, index) => legendData[index].visible); // TODO: check if the filter for colors is correct
+    // console.log(visibleData)
+    // console.log(visibleData)
+    // console.log(visibleLegend[0].name)
+    // console.log(visibleLegend[0].color)
+    // console.log(visibleLegend[0].visible)
+
     // Concatenate all the filtered data arrays into a single array
     let datas = visibleData.reduce((acc, val) => acc.concat(val), []);
 
@@ -98,6 +103,7 @@
     
     // Taking the range of dates from the first dataset (all of the datasets have the same dates)
     var xRange = d3.extent(all_data[0].map(function(d) { return d.date; })); 
+
     x.domain(xRange);
     x_volume.domain(xRange);
     // Calculate extent
@@ -112,9 +118,10 @@
     x_date_slider.domain(x.domain());
     y_date_slider.domain(y.domain());
 
-    var min = 0;
-    var max = d3.max(datas.map(function(d) { return d.price; }));
-
+    // var min = 0;
+    // var max = d3.max(datas.map(function(d) { return d.price; }));
+    
+    legend.selectAll('text').remove();
     var range = legend.append('text')
       .text(legendFormat(new Date(xRange[0])) + ' - ' + legendFormat(new Date(xRange[1])))
       .style('text-anchor', 'end')
@@ -139,7 +146,7 @@
           .datum(dataItem)
           .attr('class', 'chart__line chart__price--focus line')
           .attr('d', priceLine)
-          .style("stroke", visibleColors[index]); // Apply color from visibleColors array
+          .style("stroke", visibleLegend[index].color); // Apply color from visibleColors array
     });
 
     focus.append('g')
@@ -167,10 +174,10 @@
       .values(function(d) { return d.values; });
 
     // TODO: Make the stacked bars width to be wider and bigger when zooming in (with brush)
-    var focusGraph = barsGroup.selectAll('g')
+    barsGroup.selectAll('g')
       .data(stack(stackData))
       .enter().append('g')
-      .style('fill', function(d, i) { return colors[i]; }) // Use the colors array defined earlier
+      .style('fill', function(d, i) { return visibleLegend[i].color; }) // Use the colors array defined earlier
       .selectAll('rect')
         .data(function(d) { return d.values; })
         .enter().append('rect')
@@ -204,7 +211,7 @@
       .style('display', 'none')
       .attr('r', 2.5);
 
-    var mouseArea = svg.append('g')
+    svg.append('g')
       .attr('class', 'chart__mouse')
       .append('rect')
       .attr('class', 'chart__overlay')
@@ -224,15 +231,15 @@
       .on('mousemove', mousemove);
 
     //TODO: change to history events
-    context.append('path')
-        .datum(all_data[0])
-        .attr('class', 'chart__area area')
-        .attr('d', area_date_slider);
+    // context.append('path')
+    //     // .datum(all_data[0])
+    //     .attr('class', 'chart__area area')
+    //     // .attr('d', area_date_slider);
 
     context.append('g')
-        .attr('class', 'x axis chart__axis--context')
-        .attr('y', 0)
-        .attr('transform', 'translate(0,' + (height_date_slider - 22) + ')')
+        .attr('class', 'x axis')
+        // .attr('y', 0)
+        .attr('transform', 'translate(0,' + (height_date_slider) + ')')
         .call(x_date_slider_axis);
 
     context.append('g')
@@ -359,7 +366,7 @@
         .attr('class', 'chart__range-selection')
         .text(v)
         .attr('transform', 'translate(' + (18 * i) + ', 0)')
-        .on('click', function(d) { focusOnRange(this.textContent); });
+        .on('click', function() { focusOnRange(this.textContent); });
     }
 
     function focusOnRange(range) {
@@ -389,8 +396,6 @@
       context.select('g.x.brush').call(brush.extent([ext, today]))
     }
   }  
-                  // Blue , Orange, Green, Red
-  var colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728'];
   var filePaths = ['./data/STOCKHISTORY_SPY.csv', './data/STOCKHISTORY_QQQ.csv', './data/STOCKHISTORY_ACWI.csv', './data/STOCKHISTORY_SOXX.csv'];
     d3.csv(filePaths[0], type, function(err, data) {
       d3.csv(filePaths[1], type, function(err, data2) {
@@ -424,7 +429,7 @@
                     // Toggle visibility
                     d.visible = !d.visible;
                     d3.select(this).attr("fill", d.visible ? d.color : "white");
-                    // initializeCharts();
+                    initializeCharts();
                     show_data(all_data, legendData)
                   });
               
@@ -441,30 +446,9 @@
     });// end Data
 
   function initializeCharts() {
-    d3.select("svg").remove();
-    margin = {top: 30, right: 20, bottom: 100, left: 75},
-    margin2  = {top: 210, right: 20, bottom: 20, left: 75};
-
-    width    =  window.innerWidth - margin.left - margin.right - 20, // -20 for the margin
-    height   = 283 - margin.top - margin.bottom,
-    height_date_slider  = 283 - margin2.top - margin2.bottom;
-
-    parseDate = d3.time.format('%d/%m/%Y').parse,
-    bisectDate = d3.bisector(function(d) { return d.date; }).left,
-    legendFormat = d3.time.format('%b %d, %Y');
-
-    x = d3.time.scale().range([0, width]),
-    y = d3.scale.linear().range([height, 0]),
-    x_volume  = d3.time.scale().range([0, width]),
-    y_volume  = d3.scale.linear().range([height, height-50]),
-    x_date_slider  = d3.time.scale().range([0, width]),
-    y_date_slider  = d3.scale.linear().range([height_date_slider, 0]);
-
-    x_axis   = d3.svg.axis().scale(x).orient('bottom'),
-        y_axis   = d3.svg.axis().scale(y).orient('left'),
-        x_axis_volume   = d3.svg.axis().scale(x_volume).orient('bottom'),
-        y_axis_volume   = d3.svg.axis().scale(y_volume).orient('left'),
-        x_date_slider_axis  = d3.svg.axis().scale(x_date_slider).orient('bottom');
+    barsGroup.selectAll("*").remove();
+    focus.selectAll("*").remove();
+    context.selectAll("*").remove();
 
     priceLine = d3.svg.line()
       .interpolate('monotone')
@@ -476,53 +460,25 @@
       .x(function(d) { return x(d.date); })
       .y(function(d) { return y(d.average); });
     
-    area_date_slider = d3.svg.area()
-      .interpolate('monotone')
-      .x(function(d) { return x_date_slider(d.date); })
-      .y0(height_date_slider)
-      .y1(function(d) { return y_date_slider(d.price); });
+    // area_date_slider = d3.svg.area()
+    //   .interpolate('monotone')
+    //   .x(function(d) { return x_date_slider(d.date); })
+    //   .y0(height_date_slider)
+    //   .y1(function(d) { return y_date_slider(d.price); });
 
-    svg = d3.select('body').append('svg')
-      .attr('class', 'chart')
-      .attr('width', width + margin.left + margin.right)
-      .attr('height', height + margin.top + margin.bottom + 60);
+    // focus = svg.append('g')
+    //   .attr('class', 'focus')
+    //   .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
-    svg.append('defs').append('clipPath')
-      .attr('id', 'clip')
-      .append('rect')
-      .attr('width', width)
-      .attr('height', height);
+    // barsGroup = svg.append('g')
+    //   .attr('class', 'volume')
+    //   .attr('clip-path', 'url(#clip)')
+    //   .attr('transform', 'translate(' + margin.left + ',' + (margin.top + 60 + 20) + ')');
 
-    make_y_axis = function () {
-      return d3.svg.axis()
-        .scale(y)
-        .orient('left')
-        .ticks(3);
-    };
+    // context = svg.append('g')
+    //   .attr('class', 'context')
+    //   .attr('transform', 'translate(' + margin2.left + ',' + (margin2.top + 60) + ')');
 
-    focus = svg.append('g')
-      .attr('class', 'focus')
-      .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
-
-    barsGroup = svg.append('g')
-      .attr('class', 'volume')
-      .attr('clip-path', 'url(#clip)')
-      .attr('transform', 'translate(' + margin.left + ',' + (margin.top + 60 + 20) + ')');
-
-    context = svg.append('g')
-      .attr('class', 'context')
-      .attr('transform', 'translate(' + margin2.left + ',' + (margin2.top + 60) + ')');
-
-    legend = svg.append('g')
-      .attr('class', 'chart__legend')
-      .attr('width', width)
-      .attr('height', 30)
-      .attr('transform', 'translate(' + margin2.left + ', 10)');
-
-    rangeSelection =  legend
-      .append('g')
-      .attr('class', 'chart__range-selection')
-      .attr('transform', 'translate(0, 0)');
   }
 
   function type(d) {
