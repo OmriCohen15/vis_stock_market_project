@@ -43,7 +43,7 @@ svg {
   pointer-events: all;
 }
 .chart__tooltip--price {
-  fill: none;
+  fill: rgba(255, 0, 0, 0.625); ;
   stroke: #f00;
 }
 .chart__tooltip--average {
@@ -87,4 +87,11 @@ svg {
 }
 .y.axis path {
   display: none;
+}
+
+.chart__helper text{
+  fill: #000000; /* Text color */
+  font-size: 13px; /* Text size */
+  font-family: 'Arial', sans-serif; /* Font style */
+  font-weight: bold; /* Makes the text bold */
 }

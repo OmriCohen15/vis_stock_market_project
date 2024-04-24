@@ -1,28 +1,25 @@
 /* global d3, _ */
 
 (function() {
-  var margin = {top: 30, right: 20, bottom: 100, left: 75},
-    margin2  = {top: 240, right: 20, bottom: 20, left: 75};
+  var margin = {top: 60, right: 20, bottom: 70, left: 75},
+    margin2  = {top: 360, right: 20, bottom: 20, left: 75};
 
   var width    =  window.innerWidth - margin.left - margin.right - 20, // -20 for the margin
-      height   = 283 - margin.top - margin.bottom,
-      height_date_slider  = 283 - margin2.top - margin2.bottom;
+      height   = 400 - margin.top - margin.bottom,
+      height_date_slider  = 400 - margin2.top - margin2.bottom;
 
   var parseDate = d3.time.format('%d/%m/%Y').parse,
-      // bisectDate = d3.bisector(function(d) { return d.date; }).left,
       legendFormat = d3.time.format('%b %d, %Y');
 
   var x = d3.time.scale().range([0, width]),
       y = d3.scale.linear().range([height, 0]),
       x_volume  = d3.time.scale().range([0, width]),
-      y_volume  = d3.scale.linear().range([height, height-50]),
+      y_volume  = d3.scale.linear().range([height, height-40]),
       x_date_slider  = d3.time.scale().range([0, width]),
       y_date_slider  = d3.scale.linear().range([height_date_slider, 0]);
 
   var x_axis   = d3.svg.axis().scale(x).orient('bottom'),
       y_axis   = d3.svg.axis().scale(y).orient('left'),
-      // x_axis_volume   = d3.svg.axis().scale(x_volume).orient('bottom'),
-      // y_axis_volume   = d3.svg.axis().scale(y_volume).orient('left'),
       x_date_slider_axis  = d3.svg.axis().scale(x_date_slider).orient('bottom');
 
   var priceLine = d3.svg.line()
@@ -34,12 +31,6 @@
     .interpolate('monotone')
     .x(function(d) { return x(d.date); })
     .y(function(d) { return y(d.average); });
-  
-  // var area_date_slider = d3.svg.area()
-  //   .interpolate('monotone')
-  //   .x(function(d) { return x_date_slider(d.date); })
-  //   .y0(height_date_slider)
-  //   .y1(function(d) { return y_date_slider(d.price); });
 
   var svg = d3.select('body').append('svg')
     .attr('class', 'chart')
@@ -87,12 +78,7 @@
 
     // Create a new array containing only the data where `visible` is true
     var visibleData = all_data.filter((item, index) => legendData[index].visible);
-    var visibleLegend = legendData.filter((item, index) => legendData[index].visible); // TODO: check if the filter for colors is correct
-    // console.log(visibleData)
-    // console.log(visibleData)
-    // console.log(visibleLegend[0].name)
-    // console.log(visibleLegend[0].color)
-    // console.log(visibleLegend[0].visible)
+    var visibleLegend = legendData.filter((item, index) => legendData[index].visible);
 
     // Concatenate all the filtered data arrays into a single array
     let datas = visibleData.reduce((acc, val) => acc.concat(val), []);
@@ -117,9 +103,6 @@
 
     x_date_slider.domain(x.domain());
     y_date_slider.domain(y.domain());
-
-    // var min = 0;
-    // var max = d3.max(datas.map(function(d) { return d.price; }));
     
     legend.selectAll('text').remove();
     var range = legend.append('text')
@@ -173,7 +156,6 @@
       // .offset("wiggle")
       .values(function(d) { return d.values; });
 
-    // TODO: Make the stacked bars width to be wider and bigger when zooming in (with brush)
     barsGroup.selectAll('g')
       .data(stack(stackData))
       .enter().append('g')
@@ -183,19 +165,17 @@
         .enter().append('rect')
         .attr('x', function(d) { return x(d.x); })
         .attr('y', function(d) {
-            //TODO: check why receive NaN on count 7044 in y and height
             var yPos = y_volume(d.y0 + d.y);  // Calculate the y position
             return isNaN(yPos) ? 0 : yPos;     // Check if yPos is NaN, if so return 0, else return yPos
         })
-        // .attr('y', function(d) { return y_volume((d.y0 + d.y)); }) // Use y0 + y for stacked bar position
         .attr('height', function(d) { var y_h = y_volume(d.y0) - y_volume(d.y0 + d.y);
           return isNaN(y_h) ? 0 : y_h;  }) // Adjust height for stacked bars
         .attr('width', 1); // Maintain the width as 1
 
     var helper = focus.append('g')
       .attr('class', 'chart__helper')
-      .style('text-anchor', 'end')
-      .attr('transform', 'translate(' + width + ', 0)');
+      .style('text-anchor', 'start')
+      .attr('transform', 'translate(' + 0 + ', ' + - 20 + ')');
 
     var helperText = helper.append('text')
 
@@ -203,13 +183,13 @@
       .attr('class', 'chart__tooltip--price')
       .append('circle')
       .style('display', 'none')
-      .attr('r', 2.5);
+      .attr('r', 4);
 
     var averageTooltip = focus.append('g')
       .attr('class', 'chart__tooltip--average')
       .append('circle')
       .style('display', 'none')
-      .attr('r', 2.5);
+      .attr('r', 4);
 
     svg.append('g')
       .attr('class', 'chart__mouse')
@@ -230,15 +210,8 @@
       })
       .on('mousemove', mousemove);
 
-    //TODO: change to history events
-    // context.append('path')
-    //     // .datum(all_data[0])
-    //     .attr('class', 'chart__area area')
-    //     // .attr('d', area_date_slider);
-
     context.append('g')
         .attr('class', 'x axis')
-        // .attr('y', 0)
         .attr('transform', 'translate(0,' + (height_date_slider) + ')')
         .call(x_date_slider_axis);
 
@@ -248,6 +221,43 @@
       .selectAll('rect')
         .attr('y', -6)
         .attr('height', height_date_slider + 7);
+
+    // Load and parse the data (you will replace this with AJAX or a similar method to fetch your data)
+    d3.csv('./data/HISTORYEVENTS.csv', function(error, data) {
+    if (error) throw error;
+
+      data.forEach(function(d) {
+          d.Date = parseDate(d.Date);
+          
+      });
+      var tooltip = d3.select("#tooltip");
+      // Add the events as circles
+      context.selectAll(".event")
+          .data(data)
+        .enter().append("circle")
+          .attr("class", "event")
+          .attr("cx", function(d) { return x_date_slider(d.Date); })
+          .attr("cy", height_date_slider)  // Adjust the vertical position as needed
+          .attr("r", 5)
+          .style("fill", "blue")  // Set the fill color; adjust as needed
+          .style("fill-opacity", 0.5)  // Set fill opacity to 50% for transparency
+          .style("stroke", "black")  // Color of the stroke
+          .style("stroke-width", "1px")  // Tiny stroke width
+          .on("mouseover", function(d) {
+            // Update tooltip content and make it visible
+            tooltip.html(
+              "Date: " + d3.time.format("%B %d, %Y")(d.Date) + "<br>" +
+              "Event: " + d.Event + "<br>" +
+              "Description: " + d.Description
+            )
+          .style("visibility", "visible")
+          .style("top", (height + margin.top + margin.bottom + 100) + "px");  // Positioning below the graph
+              })
+          .on("mouseout", function(d) {
+            // Hide the tooltip
+            tooltip.style("visibility", "hidden");
+          })  
+    });
 
     var closenessThreshold = 20; // pixels, adjust based on your needs
     function mousemove() {
@@ -282,13 +292,13 @@
       var minimumValue = Math.min.apply(Math, distance_values);
       var minimumIndex = distance_values.indexOf(minimumValue);
 
-      // console.log(minimumIndex)
       d_final = closestData_values[minimumIndex]
       if (minimumValue <= closenessThreshold) {
         helperText.text(legendFormat(new Date(d_final.date)) +
-        ' - Price: ' + d_final.price.toLocaleString() +
-        ' Avg: ' + d_final.average.toLocaleString() +
-        ' Vol: ' + d_final.volume.toLocaleString());
+        ' | Price: ' + d_final.price.toLocaleString() + 
+        ' | Moving Average: ' + d_final.average.toLocaleString() +
+        ' | Volume: ' + d_final.volume.toLocaleString());
+
         priceTooltip.attr('transform', 'translate(' + x(d_final.date) + ',' + y(d_final.price) + ')');
         averageTooltip.attr('transform', 'translate(' + x(d_final.date) + ',' + y(d_final.average) + ')');
       }
@@ -298,6 +308,17 @@
       var ext = brush.extent();
       if (!brush.empty()) {
         x.domain(brush.empty() ? x_date_slider.domain() : brush.extent());
+        
+        // Calculate the difference in milliseconds
+        var differenceInMillis = ext[1] - ext[0];
+
+        // Convert milliseconds to days
+        var differenceInDays = differenceInMillis / (1000 * 60 * 60 * 24);
+
+        // Calculate the upper bound of the difference in days
+        var upperBoundDays = Math.ceil(differenceInDays);
+
+        var customWidth = Math.floor(width / upperBoundDays);
     
         // Calculate global min and max across all datasets
         var minPrice = d3.min(visibleData, function(ds) {
@@ -336,14 +357,12 @@
 
         rects.attr('x', function(d) { return x(d.x); })
         .attr('y', function(d) {
-          //TODO: check why receive NaN on count 7044 in y and height
           var yPos = y_volume(d.y0 + d.y);  // Calculate the y position
           return isNaN(yPos) ? 0 : yPos;     // Check if yPos is NaN, if so return 0, else return yPos
       })
-        // .attr('y', function(d) { return y_volume((d.y0 + d.y)); }) // Use y0 + y for stacked bar position
         .attr('height', function(d) { var y_h = y_volume(d.y0) - y_volume(d.y0 + d.y);
           return isNaN(y_h) ? 0 : y_h;  }) // Adjust height for stacked bars
-            .attr('width', 1);  // Mark - Updated attributes for rects
+            .attr('width', customWidth < 1 ? 1 : customWidth);  // Mark - Updated attributes for rects
                       // Additional adjustments for focusGraph, etc.
       }
     
@@ -459,26 +478,6 @@
       .interpolate('monotone')
       .x(function(d) { return x(d.date); })
       .y(function(d) { return y(d.average); });
-    
-    // area_date_slider = d3.svg.area()
-    //   .interpolate('monotone')
-    //   .x(function(d) { return x_date_slider(d.date); })
-    //   .y0(height_date_slider)
-    //   .y1(function(d) { return y_date_slider(d.price); });
-
-    // focus = svg.append('g')
-    //   .attr('class', 'focus')
-    //   .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
-
-    // barsGroup = svg.append('g')
-    //   .attr('class', 'volume')
-    //   .attr('clip-path', 'url(#clip)')
-    //   .attr('transform', 'translate(' + margin.left + ',' + (margin.top + 60 + 20) + ')');
-
-    // context = svg.append('g')
-    //   .attr('class', 'context')
-    //   .attr('transform', 'translate(' + margin2.left + ',' + (margin2.top + 60) + ')');
-
   }
 
   function type(d) {
