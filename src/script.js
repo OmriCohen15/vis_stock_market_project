@@ -246,17 +246,18 @@
           .on("mouseover", function(d) {
             // Update tooltip content and make it visible
             tooltip.html(
-              "Date: " + d3.time.format("%B %d, %Y")(d.Date) + "<br>" +
-              "Event: " + d.Event + "<br>" +
-              "Description: " + d.Description
+              "<strong>Date:</strong> <em>" + d3.time.format("%B %d, %Y")(d.Date) + "</em><br>" +
+              "<strong>Event:</strong> " + d.Event + "<br>" +
+              "<strong>Description:</strong> " + d.Description
             )
-          .style("visibility", "visible")
-          .style("top", (height + margin.top + margin.bottom + 100) + "px");  // Positioning below the graph
-              })
-          .on("mouseout", function(d) {
-            // Hide the tooltip
-            tooltip.style("visibility", "hidden");
-          })  
+            .style("font-family", "Arial, sans-serif")
+            .style("visibility", "visible")
+            .style("top", (height + margin.top + margin.bottom + 100) + "px");  // Positioning below the graph
+                })
+            .on("mouseout", function(d) {
+              // Hide the tooltip
+              tooltip.style("visibility", "hidden");
+            })  
     });
 
     var closenessThreshold = 20; // pixels, adjust based on your needs
@@ -377,7 +378,7 @@
       focus.select('.x.axis').call(x_axis);
       focus.select('.y.axis').call(y_axis);
     }
-    var dateRange = ['1w', '1m', '3m', '6m', '1y', '5y']
+    var dateRange = ['1w', '1m', '3m', '6m', '1y', '3y', '7y']
     for (var i = 0, l = dateRange.length; i < l; i ++) {
       var v = dateRange[i];
       rangeSelection
@@ -404,11 +405,11 @@
       if (range === '6m')
         ext.setMonth(ext.getMonth() - 6)
 
-      if (range === '1y')
-        ext.setFullYear(ext.getFullYear() - 1)
+      if (range === '3y')
+        ext.setFullYear(ext.getFullYear() - 3)
 
-      if (range === '5y')
-        ext.setFullYear(ext.getFullYear() - 5)
+      if (range === '7y')
+        ext.setFullYear(ext.getFullYear() - 7)
 
       brush.extent([ext, today])
       brushed()
