@@ -1,6 +1,8 @@
 /* global d3, _ */
 
 (function() {
+
+  // Assign boundary variables for the purpose of bounding the graphs in the visualization 
   var margin = {top: 60, right: 20, bottom: 70, left: 75},
     margin2  = {top: 360, right: 20, bottom: 20, left: 75};
 
@@ -8,9 +10,9 @@
       height   = 400 - margin.top - margin.bottom,
       height_date_slider  = 400 - margin2.top - margin2.bottom;
 
-  var parseDate = d3.time.format('%d/%m/%Y').parse,
-      legendFormat = d3.time.format('%b %d, %Y');
-
+  /* Define several scales for positioning elements within a visualization.
+     Each scale defines its range, specifying the output values range in pixels.
+     The lines set up D3 axis generators associated with the scales to create visual reference lines or ticks along the axes. */
   var x = d3.time.scale().range([0, width]),
       y = d3.scale.linear().range([height, 0]),
       x_volume  = d3.time.scale().range([0, width]),
@@ -22,16 +24,12 @@
       y_axis   = d3.svg.axis().scale(y).orient('left'),
       x_date_slider_axis  = d3.svg.axis().scale(x_date_slider).orient('bottom');
 
-  var priceLine = d3.svg.line()
-    .interpolate('monotone')
-    .x(function(d) { return x(d.date); })
-    .y(function(d) { return y(d.price); });
+  // Initialize two time formats
+  var parseDate = d3.time.format('%d/%m/%Y').parse,
+      legendFormat = d3.time.format('%b %d, %Y');
 
-  var avgLine = d3.svg.line()
-    .interpolate('monotone')
-    .x(function(d) { return x(d.date); })
-    .y(function(d) { return y(d.average); });
-
+     
+  // Create an SVG element with the dimensions that assigned earlier.
   var svg = d3.select('body').append('svg')
     .attr('class', 'chart')
     .attr('width', width + margin.left + margin.right)
@@ -43,12 +41,24 @@
     .attr('width', width)
     .attr('height', height);
 
-  var make_y_axis = function () {
-    return d3.svg.axis()
-                    .scale(y)
-                    .orient('left')
-                    .ticks(3);
-  };
+  // var make_y_axis = function () {
+  //   return d3.svg.axis()
+  //                   .scale(y)
+  //                   .orient('left')
+  //                   .ticks(3);
+  // };
+
+  /* This block of code defines SVG line generators for the elements that we want to show,
+     each with specific classes and transformations to position them correctly within the visualization.*/
+  var priceLine = d3.svg.line()
+    .interpolate('monotone')
+    .x(function(d) { return x(d.date); })
+    .y(function(d) { return y(d.price); });
+
+  var avgLine = d3.svg.line()
+    .interpolate('monotone')
+    .x(function(d) { return x(d.date); })
+    .y(function(d) { return y(d.average); });
 
   var focus = svg.append('g')
     .attr('class', 'focus')
@@ -69,13 +79,14 @@
     .attr('height', 30)
     .attr('transform', 'translate(' + margin2.left + ', 10)');
 
-  var rangeSelection =  legend
+  var rangeSelection = legend
     .append('g')
     .attr('class', 'chart__range-selection')
     .attr('transform', 'translate(0, 0)');
     
+  /* This function will be called every time a change is made in displaying/hiding one of the lines.
+     It updates the screen and the borders of the graph according to the visible lines */
   function show_data(all_data, legendData) {
-
     // Create a new array containing only the data where `visible` is true
     var visibleData = all_data.filter((item, index) => legendData[index].visible);
     var visibleLegend = legendData.filter((item, index) => legendData[index].visible);
@@ -110,11 +121,12 @@
       .style('text-anchor', 'end')
       .attr('transform', 'translate(' + width + ', 0)');
 
-    focus.append('g')
-        .attr('class', 'y chart__grid')
-        .call(make_y_axis()
-        .tickSize(-width, 0, 0)
-        .tickFormat(''));
+    //TODO: delete
+    // focus.append('g')
+    //     .attr('class', 'y chart__grid')
+    //     .call(make_y_axis()
+    //     .tickSize(-width, 0, 0)
+    //     .tickFormat(''));
          
     // Create chart paths dynamically based on visibleData
     var averageCharts = visibleData.map((dataItem, index) => {
@@ -142,7 +154,7 @@
         .attr('transform', 'translate(12, 0)')
         .call(y_axis);
 
-        // Filter and map the data to include only visible datasets
+    // Filter and map the data to include only visible datasets
     var stackData = all_data
       .map((dataset, index) => {
           return {
@@ -153,7 +165,6 @@
       .filter((_, index) => legendData[index].visible);
 
     var stack = d3.layout.stack()
-      // .offset("wiggle")
       .values(function(d) { return d.values; });
 
     barsGroup.selectAll('g')
@@ -169,7 +180,7 @@
             return isNaN(yPos) ? 0 : yPos;     // Check if yPos is NaN, if so return 0, else return yPos
         })
         .attr('height', function(d) { var y_h = y_volume(d.y0) - y_volume(d.y0 + d.y);
-          return isNaN(y_h) ? 0 : y_h;  }) // Adjust height for stacked bars
+          return isNaN(y_h) ? 0 : y_h;  }) 
         .attr('width', 1); // Maintain the width as 1
 
     var helper = focus.append('g')
@@ -239,10 +250,10 @@
           .attr("cx", function(d) { return x_date_slider(d.Date); })
           .attr("cy", height_date_slider)  // Adjust the vertical position as needed
           .attr("r", 5)
-          .style("fill", "blue")  // Set the fill color; adjust as needed
-          .style("fill-opacity", 0.5)  // Set fill opacity to 50% for transparency
-          .style("stroke", "black")  // Color of the stroke
-          .style("stroke-width", "1px")  // Tiny stroke width
+          .style("fill", "blue")  
+          .style("fill-opacity", 0.5)  
+          .style("stroke", "black")  
+          .style("stroke-width", "1px")  
           .on("mouseover", function(d) {
             // Update tooltip content and make it visible
             tooltip.html(
@@ -260,10 +271,14 @@
             })  
     });
 
-    var closenessThreshold = 20; // pixels, adjust based on your needs
+    /* This function calculates the mouse's position relative to the data on the chart,
+       finds the closest data point to the mouse position along the x-axis,
+       and calculates the distance between the mouse position and the price line at that data point.
+       It then displays tooltips with information about the closest data point if the mouse is within a certain threshold distance from the price line.*/
     function mousemove() {
+      var closenessThreshold = 20; 
       var mouse = d3.mouse(this); // Gets the x and y coordinates of the mouse
-      var x_mouse_location = mouse[0]; // Adjust mouse position by margin
+      var x_mouse_location = mouse[0]; 
       var y_mouse_location = mouse[1];
       var x_data_value = x.invert(x_mouse_location); // convert back from pixel to data value  
 
@@ -278,7 +293,6 @@
         return {distance, closestData};
       }
 
-      // Assuming you have defined `y` as a D3 scale, and `y_mouse_location` and `x_data_value` are known
       var distance_closestData_values = visibleData.map(dataset => findClosestAndCalculateDistance(dataset, x_data_value, y_mouse_location, y));
       // Create an array of all 'distance' values
       var distance_values = distance_closestData_values.map(function(item) {
@@ -305,6 +319,11 @@
       }
     }
   
+    /* This function is called when the user interacts with the brushing tool (slider) on the chart.
+       It adjusts the x-axis domain based on the extent of the brush,
+       recalculates the y-axis domain based on the visible data within the brush extent,
+       updates the range text, and adjusts the size and position of bars in the chart accordingly.
+       Additionally, it ensures that the line charts representing average and price data are correctly updated for the new x domain */
     function brushed() {
       var ext = brush.extent();
       if (!brush.empty()) {
@@ -362,12 +381,11 @@
           return isNaN(yPos) ? 0 : yPos;     // Check if yPos is NaN, if so return 0, else return yPos
       })
         .attr('height', function(d) { var y_h = y_volume(d.y0) - y_volume(d.y0 + d.y);
-          return isNaN(y_h) ? 0 : y_h;  }) // Adjust height for stacked bars
+          return isNaN(y_h) ? 0 : y_h;  }) 
             .attr('width', customWidth < 1 ? 1 : customWidth);  // Mark - Updated attributes for rects
-                      // Additional adjustments for focusGraph, etc.
+                      
       }
     
-      // Assuming avgLine and priceLine are updated elsewhere or need dynamic computation here
       averageCharts.forEach(chart => {
         chart.attr('d', avgLine); // Ensure avgLine is correctly updated for the new x domain
       });
@@ -378,6 +396,9 @@
       focus.select('.x.axis').call(x_axis);
       focus.select('.y.axis').call(y_axis);
     }
+
+    /* This code creates a set of text elements representing different date ranges (e.g., 1 week, 1 month, etc.).
+       A click event listener is attached to each text element to trigger the focusOnRange function with the corresponding date range when clicked.*/
     var dateRange = ['1w', '1m', '3m', '6m', '1y', '3y', '7y']
     for (var i = 0, l = dateRange.length; i < l; i ++) {
       var v = dateRange[i];
@@ -389,6 +410,9 @@
         .on('click', function() { focusOnRange(this.textContent); });
     }
 
+    /* This function adjusts the brush extent based on the selected date range.
+       It calculates the new start date (ext) by subtracting the appropriate amount of time from the current date (today).
+       Then it updates the brush extent, triggers the brushed() function to update the visualization accordingly */
     function focusOnRange(range) {
       var today = new Date(all_data[0][all_data[0].length - 1].date)
       var ext = new Date(all_data[0][all_data[0].length - 1].date)
@@ -405,6 +429,9 @@
       if (range === '6m')
         ext.setMonth(ext.getMonth() - 6)
 
+      if (range === '1y')
+        ext.setFullYear(ext.getFullYear() - 1)
+
       if (range === '3y')
         ext.setFullYear(ext.getFullYear() - 3)
 
@@ -416,6 +443,10 @@
       context.select('g.x.brush').call(brush.extent([ext, today]))
     }
   }  
+
+  /* This block of code reads CSV files located at specified file paths,
+     parses them using the type function, and then combines the resulting data arrays into a single array all_data.
+     Additionally, it initializes legendData, which contains information about each dataset. */
   var filePaths = ['./data/STOCKHISTORY_SPY.csv', './data/STOCKHISTORY_QQQ.csv', './data/STOCKHISTORY_ACWI.csv', './data/STOCKHISTORY_SOXX.csv'];
     d3.csv(filePaths[0], type, function(err, data) {
       d3.csv(filePaths[1], type, function(err, data2) {
@@ -430,6 +461,8 @@
             ];
             show_data(all_data, legendData)
           
+            /* This code appends a legend to the SVG element, and adds colored rectangles and corresponding text labels for each item in the `legendData` array.
+               Clicking on a legend item toggles its visibility and updates the charts accordingly using the `initializeCharts()` and `show_data()` functions.*/
             var legend = svg.append("g")
               .attr("class", "legend")
               .attr("transform", "translate(" + (0) + ", 30)"); // Adjust these values to position your legend
@@ -455,16 +488,18 @@
               
                 // Append text label for the colored rectangle
                 d3.select(this).append("text")
-                  .attr("x", 30) // Position text to the right of the rectangle
-                  .attr("y", 10) // Align text vertically
-                  .attr("dy", ".35em") // Center text vertically in the rectangle
+                  .attr("x", 30) 
+                  .attr("y", 10)
+                  .attr("dy", ".35em") 
                   .text(d.name);
               });
           })
         })
       })
-    });// end Data
+    });
 
+  /* This function remove all existing elements from the bars group, focus group, and context group within the visualization,
+     so after the user hide/unhide some lines it will be updated correctly */
   function initializeCharts() {
     barsGroup.selectAll("*").remove();
     focus.selectAll("*").remove();
@@ -481,6 +516,7 @@
       .y(function(d) { return y(d.average); });
   }
 
+  // This function is used as a type conversion function for parsing CSV data.
   function type(d) {
     // Remove commas and other non-numeric characters except decimal point
     var cleanVolume = d.Volume.replace(/,/g, ''); // Removes commas
